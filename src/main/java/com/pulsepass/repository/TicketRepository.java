@@ -14,15 +14,13 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     Optional<Ticket> findByTicketCode(String ticketCode);
 
-
     List<Ticket> findByUserEmail(String email);
 
+    List<Ticket> findByUserEmailIgnoreCaseOrderByPurchaseDateDesc(String email);
 
     List<Ticket> findByUserEmailAndStatus(String email, TicketStatus status);
 
-
-    List<Ticket> findByEvent_EventCodeAndStatus(String eventCode, TicketStatus status);
-
+    List<Ticket> findByEventEventCodeAndStatus(String eventCode, TicketStatus status);
 
     @Query("""
             select count(t)
