@@ -222,7 +222,7 @@ class TicketRepositoryIT extends AbstractPostgresIT {
         ticketRepository.saveAndFlush(TestData.ticket("TCK-OTHER", TicketType.GENERAL, "80000", TicketStatus.PAID,
                 userRepository.findByUsername("andrea").orElseThrow(), otherEvent));
 
-        List<Ticket> paid = ticketRepository.findByEvent_EventCodeAndStatus("CMF-2026", TicketStatus.PAID);
+        List<Ticket> paid = ticketRepository.findByEventEventCodeAndStatus("CMF-2026", TicketStatus.PAID);
 
         assertThat(paid).extracting(Ticket::getTicketCode).containsExactlyInAnyOrder("TCK-0001", "TCK-0002");
     }

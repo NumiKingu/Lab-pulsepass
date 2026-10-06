@@ -49,6 +49,15 @@ public class UserProfile {
         this.lastName = lastName;
     }
 
+    public UserProfile(User user, String firstName, String lastName, String phone, String city, LocalDate birthDate) {
+        this.user = user;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.phone = phone;
+        this.city = city;
+        this.birthDate = birthDate;
+    }
+
     public Long getId() { return id; }
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }
