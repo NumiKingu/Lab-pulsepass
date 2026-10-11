@@ -67,6 +67,7 @@ public class Venue {
     public void setCapacity(int capacity) { this.capacity = capacity; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+    public Boolean getActive() {return active;}
     public Set<Event> getEvents() { return events; }
 
     @Override
@@ -85,4 +86,5 @@ public class Venue {
     public String toString() {
         return "Venue{id=" + id + ", code='" + code + "', city='" + city + "'}";
     }
+
 }

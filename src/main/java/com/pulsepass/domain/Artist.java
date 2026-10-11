@@ -56,6 +56,7 @@ public class Artist {
     public void setGenre(String genre) { this.genre = genre; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+    public Boolean getActive() {return active;}
     public Set<Event> getEvents() { return events; }
 
     @Override
@@ -74,4 +75,5 @@ public class Artist {
     public String toString() {
         return "Artist{id=" + id + ", stageName='" + stageName + "'}";
     }
+
 }

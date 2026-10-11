@@ -80,6 +80,18 @@ public class Event {
         this.venue = venue;
     }
 
+    public Event(String eventCode, String name, String description, EventCategory category,
+                 EventStatus status, LocalDateTime eventDate, int minimumAge, Venue venue) {
+        this.eventCode = eventCode;
+        this.name = name;
+        this.description = description;
+        this.category = category;
+        this.status = status;
+        this.eventDate = eventDate;
+        this.minimumAge = minimumAge;
+        this.venue = venue;
+    }
+
     public void addArtist(Artist artist) {
         artists.add(artist);
         artist.getEvents().add(this);

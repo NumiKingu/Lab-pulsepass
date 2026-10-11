@@ -13,19 +13,15 @@ import java.util.Optional;
 
 public interface EventRepository extends JpaRepository<Event, Long> {
 
-
     @EntityGraph(attributePaths = "venue")
     Optional<Event> findByEventCode(String eventCode);
 
+    boolean existsByEventCode(String eventCode);
 
     List<Event> findByStatusOrderByEventDateAsc(EventStatus status);
 
 
     List<Event> findByVenueCode(String venueCode);
-
-    // ------------------------------------------------------------------
-    // JPQL (consultas con JOIN, filtros y DISTINCT)
-    // ------------------------------------------------------------------
 
 
     @Query("""

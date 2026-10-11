@@ -57,6 +57,7 @@ public class User {
     public void setEmail(String email) { this.email = email; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+    public Boolean getActive() {return active;}
     public UserProfile getProfile() { return profile; }
 
     @Override
@@ -75,4 +76,5 @@ public class User {
     public String toString() {
         return "User{id=" + id + ", username='" + username + "'}";
     }
+
 }
