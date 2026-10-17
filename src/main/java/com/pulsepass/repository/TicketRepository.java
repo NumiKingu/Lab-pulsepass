@@ -40,4 +40,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             order by e.eventDate asc, t.ticketCode asc
             """)
     List<Ticket> findByEventDateAfter(@Param("after") LocalDateTime after);
+
+    @Query("select t.user.id from Ticket t where t.ticketCode = :ticketCode")
+    Optional<Long> findOwnerIdByTicketCode(@Param("ticketCode") String ticketCode);
 }
