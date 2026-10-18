@@ -12,7 +12,6 @@ import java.io.IOException;
 
 @Component
 public class RestAccessDeniedHandler implements AccessDeniedHandler {
-
     private final HandlerExceptionResolver resolver;
 
     public RestAccessDeniedHandler(@Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver) {

@@ -16,7 +16,6 @@ import java.util.Set;
 @Service
 @Transactional(readOnly = true)
 public class CustomUserDetailsService implements UserDetailsService {
-
     private static final String GENERIC_MESSAGE = "Invalid credentials";
 
     private final UserRepository userRepository;

@@ -24,7 +24,6 @@ import java.time.LocalDate;
 @Component
 @Profile("dev")
 public class DevSecurityDataSeeder implements ApplicationRunner {
-
     private static final Logger log = LoggerFactory.getLogger(DevSecurityDataSeeder.class);
 
     private final UserRepository userRepository;

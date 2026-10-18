@@ -1,9 +1,13 @@
 package com.pulsepass.exception;
 
 import com.pulsepass.dto.response.ErrorResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -17,6 +21,7 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFound(
@@ -77,6 +82,25 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 "Missing request parameter",
                 Map.of(ex.getParameterName(), "Parameter is required")
+        );
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthentication(AuthenticationException ex) {
+        return build(
+                HttpStatus.UNAUTHORIZED,
+                "Credenciales invalidas o autenticacion requerida",
+                Map.of()
+        );
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
+        log.warn("Acceso denegado: {}", ex.getClass().getSimpleName());
+        return build(
+                HttpStatus.FORBIDDEN,
+                "No tiene permisos para realizar esta operacion",
+                Map.of()
         );
     }
 

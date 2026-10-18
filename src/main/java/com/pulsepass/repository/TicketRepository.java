@@ -11,8 +11,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface TicketRepository extends JpaRepository<Ticket, Long> {
-
     Optional<Ticket> findByTicketCode(String ticketCode);
+
+    @Query("select t.user.id from Ticket t where t.ticketCode = :ticketCode")
+    Optional<Long> findOwnerIdByTicketCode(@Param("ticketCode") String ticketCode);
 
     List<Ticket> findByUserEmail(String email);
 
@@ -31,7 +33,6 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             """)
     long countPaidByEventCode(@Param("eventCode") String eventCode);
 
-
     @Query("""
             select t
             from Ticket t
@@ -40,7 +41,4 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             order by e.eventDate asc, t.ticketCode asc
             """)
     List<Ticket> findByEventDateAfter(@Param("after") LocalDateTime after);
-
-    @Query("select t.user.id from Ticket t where t.ticketCode = :ticketCode")
-    Optional<Long> findOwnerIdByTicketCode(@Param("ticketCode") String ticketCode);
 }

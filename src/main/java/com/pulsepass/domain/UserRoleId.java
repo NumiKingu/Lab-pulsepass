@@ -10,7 +10,6 @@ import java.util.Objects;
 
 @Embeddable
 public class UserRoleId implements Serializable {
-
     @Column(name = "user_id")
     private Long userId;
 
@@ -19,7 +18,6 @@ public class UserRoleId implements Serializable {
     private Role role;
 
     protected UserRoleId() {
-
     }
 
     public UserRoleId(Long userId, Role role) {

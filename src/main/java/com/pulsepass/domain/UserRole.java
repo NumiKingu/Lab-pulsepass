@@ -11,7 +11,6 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "user_roles")
 public class UserRole {
-
     @EmbeddedId
     private UserRoleId id;
 
@@ -21,7 +20,6 @@ public class UserRole {
     private User user;
 
     protected UserRole() {
-
     }
 
     public UserRole(User user, Role role) {

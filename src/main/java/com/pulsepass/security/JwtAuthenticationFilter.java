@@ -23,9 +23,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-
     private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
     private static final String BEARER_PREFIX = "Bearer ";
 
@@ -47,7 +45,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-
         List<String> headers = Collections.list(request.getHeaders(HttpHeaders.AUTHORIZATION));
 
         if (headers.isEmpty()) {
@@ -82,15 +79,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             SecurityContext context = contextHolder.createEmptyContext();
             context.setAuthentication(authentication);
             contextHolder.setContext(context);
-
         } catch (JwtException | IllegalArgumentException | AuthenticationException ex) {
             contextHolder.clearContext();
-            // Solo el tipo de error: nunca el token (NFR-SEC-001)
+
             log.warn("JWT rechazado en {} {}: {}", request.getMethod(), request.getRequestURI(),
                     ex.getClass().getSimpleName());
             authenticationEntryPoint.commence(request, response,
                     new BadCredentialsException("Invalid or expired token", ex));
-            return; // no se invoca el Controller ni el Service
+            return;
         }
 
         filterChain.doFilter(request, response);

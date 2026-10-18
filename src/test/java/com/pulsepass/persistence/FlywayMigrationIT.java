@@ -27,7 +27,7 @@ class FlywayMigrationIT extends AbstractPostgresIT {
                 "select version from flyway_schema_history where success = true and version is not null order by installed_rank",
                 String.class);
 
-        assertThat(versions).containsExactly("1", "2", "3");
+        assertThat(versions).containsExactly("1", "2", "3", "4");
     }
 
     @Test

@@ -7,7 +7,6 @@ public record LoginRequest(
         @NotBlank(message = "Identifier is required")
         @Size(max = 255, message = "Identifier cannot exceed 255 characters")
         String identifier,
-
         @NotBlank(message = "Password is required")
         @Size(max = 72, message = "Password cannot exceed 72 characters")
         String password

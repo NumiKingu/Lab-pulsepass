@@ -11,7 +11,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class SecurityPrincipal implements UserDetails, CredentialsContainer {
-
     private final Long id;
     private final String username;
     private String passwordHash;
@@ -57,7 +56,6 @@ public class SecurityPrincipal implements UserDetails, CredentialsContainer {
     @Override
     public boolean isEnabled() { return active; }
 
-    /** Spring Security la llama tras autenticar: el hash no queda en memoria del principal. */
     @Override
     public void eraseCredentials() { this.passwordHash = null; }
 

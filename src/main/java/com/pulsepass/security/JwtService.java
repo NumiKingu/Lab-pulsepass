@@ -16,8 +16,7 @@ import java.util.UUID;
 
 @Service
 public class JwtService {
-
-    private static final int MIN_KEY_BYTES = 32; // 256 bits para HS256
+    private static final int MIN_KEY_BYTES = 32;
     private static final String EXPECTED_ALG = "HS256";
 
     private final SecretKey key;
@@ -27,7 +26,6 @@ public class JwtService {
     public JwtService(JwtProperties properties) {
         String secret = properties.secretBase64();
         if (secret == null || secret.isBlank()) {
-            // Falla el arranque: SEC-004 / 12.2 del PRD
             throw new IllegalStateException(
                     "Falta la variable de entorno PULSEPASS_JWT_SECRET_BASE64 (clave JWT en Base64)");
         }
@@ -61,13 +59,12 @@ public class JwtService {
                 .compact();
     }
 
-
     public Long extractUserId(String token) {
         Jws<Claims> jws = Jwts.parser()
-                .verifyWith(key)              // verifica la firma ANTES de confiar en los claims
-                .requireIssuer(issuer)        // issuer esperado
+                .verifyWith(key)
+                .requireIssuer(issuer)
                 .build()
-                .parseSignedClaims(token);    // rechaza tokens sin firma (alg=none)
+                .parseSignedClaims(token);
 
         if (!EXPECTED_ALG.equals(jws.getHeader().getAlgorithm())) {
             throw new UnsupportedJwtException("Algoritmo JWT no permitido");

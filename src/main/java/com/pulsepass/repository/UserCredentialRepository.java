@@ -8,7 +8,6 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
 public interface UserCredentialRepository extends JpaRepository<UserCredential, Long> {
-
     @Query("select c.passwordHash from UserCredential c where c.id = :userId")
     Optional<String> findPasswordHashByUserId(@Param("userId") Long userId);
 }

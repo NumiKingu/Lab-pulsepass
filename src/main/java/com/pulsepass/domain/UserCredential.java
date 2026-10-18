@@ -14,7 +14,6 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "user_credentials")
 public class UserCredential {
-
     @Id
     private Long id;
 
@@ -30,7 +29,6 @@ public class UserCredential {
     private LocalDateTime passwordChangedAt;
 
     protected UserCredential() {
-
     }
 
     public UserCredential(User user, String passwordHash) {
@@ -43,7 +41,6 @@ public class UserCredential {
     public User getUser() { return user; }
     public String getPasswordHash() { return passwordHash; }
     public LocalDateTime getPasswordChangedAt() { return passwordChangedAt; }
-
 
     @Override
     public String toString() {
