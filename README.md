@@ -1,6 +1,6 @@
 # PulsePass
 
-**Plataforma de eventos, artistas y entradas** — Taller de capa de persistencia.
+**Plataforma de eventos, artistas y entradas** — Taller de capas de persistencia, servicios y controladores REST.
 
 ## Integrantes
 
@@ -25,6 +25,9 @@ requerida), cálculo de precios según el tipo de entrada, y la conversión entr
 (interfaz) e implementación, que coordinan los repositories y lanzan excepciones específicas 
 (`ResourceNotFoundException`, `DuplicateResourceException`, `BusinessRuleException`) cuando una operación 
 viola una regla del negocio.
+
+Finalmente, se agregó la **capa de controladores REST**, que expone los casos de uso de los Services mediante HTTP
+(sin reglas de negocio en los Controllers, solo DTOs y errores centralizados en `GlobalExceptionHandler`).
 
 ## Tecnologías
 
