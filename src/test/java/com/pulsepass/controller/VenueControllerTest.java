@@ -6,6 +6,7 @@ import com.pulsepass.service.VenueService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.pulsepass.support.AbstractSecuredWebMvcTest;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -23,14 +24,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(VenueController.class)
-class VenueControllerTest {
-
+class VenueControllerTest extends AbstractSecuredWebMvcTest {
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
     private VenueService venueService;
-
 
     @Test
     @DisplayName("GET /api/venues/{code} -> 200 cuando el venue existe")
@@ -48,7 +47,6 @@ class VenueControllerTest {
 
         verify(venueService).findByCode("VEN-SMR-01");
     }
-
 
     @Test
     @DisplayName("GET /api/venues/{code} -> 404 con ErrorResponse cuando no existe")
@@ -68,7 +66,6 @@ class VenueControllerTest {
         verify(venueService).findByCode("NOPE");
     }
 
-    // TEST-CTRL-VEN-003
     @Test
     @DisplayName("GET /api/venues/active -> 200 con lista de venues activos")
     void findActiveVenues_retorna200() throws Exception {
@@ -82,7 +79,6 @@ class VenueControllerTest {
 
         verify(venueService).findActiveVenues();
     }
-
 
     @Test
     @DisplayName("Error inesperado -> 500 sin exponer detalles internos")

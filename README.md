@@ -40,82 +40,54 @@ Finalmente, se agregó la **capa de controladores REST**, que expone los casos d
 - MapStruct
 - AssertJ
 - Mockito
-- Spring MVC (API REST)
-- Bean Validation
-- MockMvc con `@WebMvcTest` y `@MockitoBean`
 
-## API REST
+## Seguridad (Fase 4)
 
-URL base en local: `http://localhost:8080`. Todas las respuestas son JSON.
+API **stateless** con JWT firmado **HS256** (JJWT 0.13) enviado en `Authorization: Bearer <token>`.
+Duración del token: 900 s (15 min). No hay refresh tokens ni revocación inmediata: el logout solo borra la copia del cliente.
 
-### Venues
+### Variables de entorno
 
-| Método | Endpoint | Descripción | Respuesta exitosa |
-|---|---|---|---|
-| GET | `/api/venues/{code}` | Consultar venue por código | 200 |
-| GET | `/api/venues/active` | Listar venues activos | 200 |
+| Variable | Obligatoria | Descripción |
+|---|---|---|
+| `PULSEPASS_JWT_SECRET_BASE64` | Sí | Clave HMAC en Base64, mínimo 32 bytes aleatorios (`openssl rand -base64 32`). Sin ella la app no arranca. |
+| `PULSEPASS_JWT_ISSUER` | No | Emisor esperado (por defecto `pulsepass-api`). |
+| `PULSEPASS_JWT_TTL` | No | Duración ISO-8601 (por defecto `PT15M`). |
+| `PULSEPASS_CORS_ALLOWED_ORIGINS` | No | Orígenes permitidos separados por coma. |
+| `PULSEPASS_SEED_ADMIN_PASSWORD` / `PULSEPASS_SEED_STAFF_PASSWORD` | No | Solo perfil `dev`: crea `miguel` (ADMIN) y `laura` (STAFF). |
 
-### Eventos
 
-| Método | Endpoint | Descripción | Respuesta exitosa |
-|---|---|---|---|
-| POST | `/api/events` | Crear evento | 201 |
-| GET | `/api/events/{eventCode}` | Consultar evento por código | 200 |
-| GET | `/api/events/published` | Listar eventos publicados | 200 |
-| PATCH | `/api/events/{eventCode}/publish` | Publicar evento | 200 |
-| POST | `/api/events/{eventCode}/artists/{artistId}` | Asociar artista a un evento | 200 |
-| GET | `/api/events/by-artist?stageName=...` | Buscar eventos por nombre artístico | 200 |
-| GET | `/api/events/{eventCode}/tickets/paid` | Listar tickets pagados de un evento | 200 |
+### Roles
 
-### Artistas
-
-| Método | Endpoint | Descripción | Respuesta exitosa |
-|---|---|---|---|
-| GET | `/api/artists/{id}` | Consultar artista por ID | 200 |
-| GET | `/api/artists/by-stage-name?stageName=...` | Consultar artista por nombre artístico | 200 |
-| GET | `/api/artists/active` | Listar artistas activos | 200 |
-
-### Usuarios
-
-| Método | Endpoint | Descripción | Respuesta exitosa |
-|---|---|---|---|
-| POST | `/api/users` | Registrar usuario | 201 |
-| GET | `/api/users/by-email?email=...` | Consultar usuario por email | 200 |
-| GET | `/api/users/by-username?username=...` | Consultar usuario por username | 200 |
-
-### Tickets
-
-| Método | Endpoint | Descripción | Respuesta exitosa |
-|---|---|---|---|
-| POST | `/api/tickets` | Comprar ticket | 201 |
-| GET | `/api/tickets/{ticketCode}` | Consultar ticket por código | 200 |
-| GET | `/api/tickets/by-user?email=...` | Listar tickets de un usuario | 200 |
-| PATCH | `/api/tickets/{ticketCode}/cancel` | Cancelar ticket | 200 |
-| PATCH | `/api/tickets/{ticketCode}/use` | Marcar ticket como usado | 200 |
-
-### Códigos HTTP y manejo de errores
-
-| Código | Cuándo se devuelve |
+| Rol | Puede |
 |---|---|
-| 200 OK | Consultas y actualizaciones correctas |
-| 201 Created | Creación de evento, usuario o ticket |
-| 400 Bad Request | Request inválido (Bean Validation), JSON mal formado, parámetro faltante o con formato inválido |
-| 404 Not Found | Recurso inexistente (`ResourceNotFoundException`) |
-| 409 Conflict | Duplicado (`DuplicateResourceException`) o regla de negocio incumplida (`BusinessRuleException`) |
-| 500 Internal Server Error | Error inesperado (sin exponer detalles internos) |
+| Anónimo | Ver venues, artistas y eventos publicados; registrarse; iniciar sesión |
+| `USER` | Comprar entradas para sí mismo; ver/cancelar sus tickets; ver sus datos |
+| `STAFF` | Ver tickets pagados de un evento; marcar tickets como usados |
+| `ADMIN` | Crear/publicar eventos, asociar artistas, consultar datos de otros usuarios |
 
-Todos los errores usan el contrato `ErrorResponse` (`timestamp`, `status`, `error`, `message`, `details`).
 
-## Pruebas
 
-Las pruebas de Controller usan `@WebMvcTest`, `MockMvc` y `@MockitoBean` (Services mockeados), por lo que no requieren
-PostgreSQL ni Docker. Están en `src/test/java/com/pulsepass/controller/`: `VenueControllerTest`, `EventControllerTest`,
-`ArtistControllerTest`, `UserControllerTest` y `TicketControllerTest`.
+### Endpoints nuevos
 
-```bash
-# Solo pruebas de Controller
-mvn clean test -Dtest="*ControllerTest"
+| Método | Endpoint | Acceso | Respuesta |
+|---|---|---|---|
+| POST | `/api/auth/login` | Público | 200 `AuthResponse(accessToken, tokenType, expiresIn)` |
+| GET | `/api/auth/me` | Autenticado | 200 `AuthenticatedUserResponse(id, username, roles)` |
 
-# Todo el proyecto (los tests *IT de persistencia requieren Docker)
-mvn clean test
-```
+`
+### Errores de seguridad
+
+| Código | Cuándo |
+|---|---|
+| 401 | Sin token, token inválido/expirado/manipulado, login incorrecto o usuario inactivo |
+| 403 | Rol insuficiente o recurso de otro usuario |
+
+
+### Limitaciones conocidas del MVP
+
+- `STAFF` opera sobre tickets de cualquier evento (aún no existe asignación de personal a eventos).
+- Sin límite de intentos de login, rotación de claves ni revocación por `jti`.
+- Usuarios creados antes de la Fase 4 no tienen contraseña y no pueden iniciar sesión hasta una activación segura.
+
+

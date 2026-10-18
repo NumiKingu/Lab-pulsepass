@@ -18,6 +18,7 @@ import com.pulsepass.repository.UserProfileRepository;
 import com.pulsepass.repository.UserRepository;
 import com.pulsepass.service.TicketPricingStrategy;
 import com.pulsepass.service.TicketService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,8 +55,8 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     @Transactional
+    @PreAuthorize("hasRole('USER') and @authorizationService.isCurrentUserEmail(#request.userEmail())")
     public TicketResponse purchase(PurchaseTicketRequest request) {
-
         User user = userRepository.findByEmailIgnoreCase(request.userEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + request.userEmail()));
 
@@ -105,11 +106,13 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
+    @PreAuthorize("hasAnyRole('STAFF','ADMIN') or @authorizationService.isTicketOwner(#ticketCode)")
     public TicketResponse findByCode(String ticketCode) {
         return ticketMapper.toResponse(findTicket(ticketCode));
     }
 
     @Override
+    @PreAuthorize("hasRole('ADMIN') or @authorizationService.isCurrentUserEmail(#email)")
     public List<TicketResponse> findByUserEmail(String email) {
         if (!userRepository.existsByEmailIgnoreCase(email)) {
             throw new ResourceNotFoundException("User not found: " + email);
@@ -122,6 +125,7 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
+    @PreAuthorize("hasAnyRole('STAFF','ADMIN')")
     public List<TicketResponse> findPaidTicketsByEvent(String eventCode) {
         if (!eventRepository.existsByEventCode(eventCode)) {
             throw new ResourceNotFoundException("Event not found: " + eventCode);
@@ -135,6 +139,7 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     @Transactional
+    @PreAuthorize("hasRole('ADMIN') or @authorizationService.isTicketOwner(#ticketCode)")
     public TicketResponse cancel(String ticketCode) {
         Ticket ticket = findTicket(ticketCode);
 
@@ -154,6 +159,7 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     @Transactional
+    @PreAuthorize("hasAnyRole('STAFF','ADMIN')")
     public TicketResponse markAsUsed(String ticketCode) {
         Ticket ticket = findTicket(ticketCode);
 

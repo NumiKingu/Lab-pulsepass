@@ -17,6 +17,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.pulsepass.support.AbstractSecuredWebMvcTest;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -38,10 +39,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-
 @WebMvcTest(EventController.class)
-class EventControllerTest {
-
+class EventControllerTest extends AbstractSecuredWebMvcTest {
     @Autowired
     private MockMvc mockMvc;
 
@@ -63,13 +62,12 @@ class EventControllerTest {
             }
             """;
 
-
     @Test
     @DisplayName("POST /api/events -> 201 con request valido")
     void create_valido_retorna201() throws Exception {
         when(eventService.create(any(CreateEventRequest.class))).thenReturn(event(EventStatus.DRAFT));
 
-        mockMvc.perform(post("/api/events")
+        mockMvc.perform(post("/api/events").with(asAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(VALID_BODY))
                 .andExpect(status().isCreated())
@@ -86,7 +84,6 @@ class EventControllerTest {
         assertThat(captor.getValue().category()).isEqualTo(EventCategory.MUSIC);
     }
 
-
     @Test
     @DisplayName("POST /api/events -> 400 con Bean Validation y sin llamar al Service")
     void create_invalido_retorna400() throws Exception {
@@ -101,7 +98,7 @@ class EventControllerTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/events")
+        mockMvc.perform(post("/api/events").with(asAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalid))
                 .andExpect(status().isBadRequest())
@@ -115,13 +112,12 @@ class EventControllerTest {
         verify(eventService, never()).create(any());
     }
 
-
     @Test
     @DisplayName("POST /api/events -> 400 con minimumAge negativo")
     void create_edadMinimaNegativa_retorna400() throws Exception {
         String invalid = VALID_BODY.replace("\"minimumAge\": 18", "\"minimumAge\": -1");
 
-        mockMvc.perform(post("/api/events")
+        mockMvc.perform(post("/api/events").with(asAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalid))
                 .andExpect(status().isBadRequest())
@@ -130,11 +126,10 @@ class EventControllerTest {
         verify(eventService, never()).create(any());
     }
 
-
     @Test
     @DisplayName("POST /api/events -> 400 con JSON mal formado")
     void create_jsonMalFormado_retorna400() throws Exception {
-        mockMvc.perform(post("/api/events")
+        mockMvc.perform(post("/api/events").with(asAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{ esto no es json"))
                 .andExpect(status().isBadRequest())
@@ -144,13 +139,12 @@ class EventControllerTest {
         verify(eventService, never()).create(any());
     }
 
-
     @Test
     @DisplayName("POST /api/events -> 400 con categoria inexistente")
     void create_categoriaInvalida_retorna400() throws Exception {
         String invalid = VALID_BODY.replace("\"MUSIC\"", "\"NO_EXISTE\"");
 
-        mockMvc.perform(post("/api/events")
+        mockMvc.perform(post("/api/events").with(asAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalid))
                 .andExpect(status().isBadRequest())
@@ -159,20 +153,18 @@ class EventControllerTest {
         verify(eventService, never()).create(any());
     }
 
-
     @Test
     @DisplayName("POST /api/events -> 404 cuando el venue no existe")
     void create_venueInexistente_retorna404() throws Exception {
         when(eventService.create(any(CreateEventRequest.class)))
                 .thenThrow(new ResourceNotFoundException("Venue not found: VEN-SMR-01"));
 
-        mockMvc.perform(post("/api/events")
+        mockMvc.perform(post("/api/events").with(asAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(VALID_BODY))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Venue not found: VEN-SMR-01"));
     }
-
 
     @Test
     @DisplayName("GET /api/events/{eventCode} -> 200 cuando existe")
@@ -189,7 +181,6 @@ class EventControllerTest {
         verify(eventService).findByCode("CMF-2026");
     }
 
-
     @Test
     @DisplayName("GET /api/events/{eventCode} -> 404 cuando no existe")
     void findByCode_inexistente_retorna404() throws Exception {
@@ -203,7 +194,6 @@ class EventControllerTest {
                 .andExpect(jsonPath("$.error").value("Not Found"))
                 .andExpect(jsonPath("$.message").value("Event not found: X-1"));
     }
-
 
     @Test
     @DisplayName("GET /api/events/published -> 200")
@@ -221,13 +211,12 @@ class EventControllerTest {
         verify(eventService, never()).findByCode(any());
     }
 
-
     @Test
     @DisplayName("PATCH /api/events/{eventCode}/publish -> 200")
     void publish_valido_retorna200() throws Exception {
         when(eventService.publish("CMF-2026")).thenReturn(event(EventStatus.PUBLISHED));
 
-        mockMvc.perform(patch("/api/events/{eventCode}/publish", "CMF-2026"))
+        mockMvc.perform(patch("/api/events/{eventCode}/publish", "CMF-2026").with(asAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.status").value("PUBLISHED"));
@@ -235,14 +224,13 @@ class EventControllerTest {
         verify(eventService).publish("CMF-2026");
     }
 
-
     @Test
     @DisplayName("PATCH /api/events/{eventCode}/publish -> 409 si la regla de negocio falla")
     void publish_invalido_retorna409() throws Exception {
         when(eventService.publish("CMF-2026"))
                 .thenThrow(new BusinessRuleException("Only DRAFT events can be published"));
 
-        mockMvc.perform(patch("/api/events/{eventCode}/publish", "CMF-2026"))
+        mockMvc.perform(patch("/api/events/{eventCode}/publish", "CMF-2026").with(asAdmin()))
                 .andExpect(status().isConflict())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.status").value(409))
@@ -250,13 +238,12 @@ class EventControllerTest {
                 .andExpect(jsonPath("$.message").value("Only DRAFT events can be published"));
     }
 
-
     @Test
     @DisplayName("POST /api/events/{eventCode}/artists/{artistId} -> 200")
     void addArtist_valido_retorna200() throws Exception {
         when(eventService.addArtist("CMF-2026", 1L)).thenReturn(event(EventStatus.DRAFT));
 
-        mockMvc.perform(post("/api/events/{eventCode}/artists/{artistId}", "CMF-2026", 1L))
+        mockMvc.perform(post("/api/events/{eventCode}/artists/{artistId}", "CMF-2026", 1L).with(asAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.eventCode").value("CMF-2026"))
@@ -266,19 +253,17 @@ class EventControllerTest {
         verify(eventService).addArtist("CMF-2026", 1L);
     }
 
-
     @Test
     @DisplayName("POST /api/events/{eventCode}/artists/{artistId} -> 409 si ya esta asociado")
     void addArtist_duplicado_retorna409() throws Exception {
         when(eventService.addArtist("CMF-2026", 1L))
                 .thenThrow(new BusinessRuleException("Artist already associated to event"));
 
-        mockMvc.perform(post("/api/events/{eventCode}/artists/{artistId}", "CMF-2026", 1L))
+        mockMvc.perform(post("/api/events/{eventCode}/artists/{artistId}", "CMF-2026", 1L).with(asAdmin()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.message").value("Artist already associated to event"));
     }
-
 
     @Test
     @DisplayName("POST /api/events/{eventCode}/artists/{artistId} -> 404 si el artista no existe")
@@ -286,11 +271,10 @@ class EventControllerTest {
         when(eventService.addArtist("CMF-2026", 99L))
                 .thenThrow(new ResourceNotFoundException("Artist not found: 99"));
 
-        mockMvc.perform(post("/api/events/{eventCode}/artists/{artistId}", "CMF-2026", 99L))
+        mockMvc.perform(post("/api/events/{eventCode}/artists/{artistId}", "CMF-2026", 99L).with(asAdmin()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Artist not found: 99"));
     }
-
 
     @Test
     @DisplayName("GET /api/events/by-artist?stageName=... -> 200")
@@ -306,13 +290,12 @@ class EventControllerTest {
         verify(eventService).findByArtist("Solar Beat");
     }
 
-
     @Test
     @DisplayName("GET /api/events/{eventCode}/tickets/paid -> 200 con tickets PAID")
     void findPaidTickets_retorna200() throws Exception {
         when(ticketService.findPaidTicketsByEvent("CMF-2026")).thenReturn(List.of(paidTicket()));
 
-        mockMvc.perform(get("/api/events/{eventCode}/tickets/paid", "CMF-2026"))
+        mockMvc.perform(get("/api/events/{eventCode}/tickets/paid", "CMF-2026").with(asStaff()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.length()").value(1))
@@ -322,18 +305,16 @@ class EventControllerTest {
         verify(ticketService).findPaidTicketsByEvent("CMF-2026");
     }
 
-
     @Test
     @DisplayName("GET /api/events/{eventCode}/tickets/paid -> 404 si el evento no existe")
     void findPaidTickets_eventoInexistente_retorna404() throws Exception {
         when(ticketService.findPaidTicketsByEvent("X-1"))
                 .thenThrow(new ResourceNotFoundException("Event not found: X-1"));
 
-        mockMvc.perform(get("/api/events/{eventCode}/tickets/paid", "X-1"))
+        mockMvc.perform(get("/api/events/{eventCode}/tickets/paid", "X-1").with(asStaff()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Event not found: X-1"));
     }
-
 
     private EventResponse event(EventStatus status) {
         return new EventResponse(

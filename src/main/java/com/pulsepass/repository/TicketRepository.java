@@ -11,8 +11,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface TicketRepository extends JpaRepository<Ticket, Long> {
-
     Optional<Ticket> findByTicketCode(String ticketCode);
+
+    @Query("select t.user.id from Ticket t where t.ticketCode = :ticketCode")
+    Optional<Long> findOwnerIdByTicketCode(@Param("ticketCode") String ticketCode);
 
     List<Ticket> findByUserEmail(String email);
 
@@ -30,7 +32,6 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
               and t.status = com.pulsepass.domain.TicketStatus.PAID
             """)
     long countPaidByEventCode(@Param("eventCode") String eventCode);
-
 
     @Query("""
             select t

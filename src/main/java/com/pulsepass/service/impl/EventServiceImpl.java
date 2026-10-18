@@ -15,17 +15,21 @@ import com.pulsepass.repository.ArtistRepository;
 import com.pulsepass.repository.EventRepository;
 import com.pulsepass.repository.VenueRepository;
 import com.pulsepass.service.EventService;
+import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.security.access.prepost.PostFilter;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
 public class EventServiceImpl implements EventService {
-
     private final EventRepository eventRepository;
     private final VenueRepository venueRepository;
     private final ArtistRepository artistRepository;
@@ -43,8 +47,8 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
     public EventResponse create(CreateEventRequest request) {
-        //El codigo del evento es unico
         if (eventRepository.existsByEventCode(request.eventCode())) {
             throw new DuplicateResourceException("Event code already exists: " + request.eventCode());
         }
@@ -73,6 +77,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @PostAuthorize("@authorizationService.canViewEventStatus(returnObject.status())")
     public EventResponse findByCode(String eventCode) {
         return eventMapper.toResponse(findEvent(eventCode));
     }
@@ -87,6 +92,7 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
     public EventResponse publish(String eventCode) {
         Event event = findEvent(eventCode);
 
@@ -106,6 +112,7 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
     public EventResponse addArtist(String eventCode, Long artistId) {
         Event event = findEvent(eventCode);
 
@@ -136,6 +143,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @PostFilter("@authorizationService.canViewEventStatus(filterObject.status())")
     public List<EventSummaryResponse> findByArtist(String stageName) {
         Artist artist = artistRepository.findByStageNameIgnoreCase(stageName)
                 .orElseThrow(() -> new ResourceNotFoundException("Artist not found: " + stageName));
@@ -143,7 +151,7 @@ public class EventServiceImpl implements EventService {
         return eventRepository.findByArtistStageName(artist.getStageName())
                 .stream()
                 .map(eventMapper::toSummary)
-                .toList();
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     private Event findEvent(String eventCode) {

@@ -11,6 +11,7 @@ import com.pulsepass.mapper.UserMapper;
 import com.pulsepass.repository.UserProfileRepository;
 import com.pulsepass.repository.UserRepository;
 import com.pulsepass.service.UserService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,7 +20,6 @@ import java.time.LocalDate;
 @Service
 @Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
-
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
     private final UserMapper userMapper;
@@ -35,7 +35,6 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponse register(RegisterUserRequest request) {
-
         if (userRepository.existsByUsername(request.username())) {
             throw new DuplicateResourceException("Username already exists: " + request.username());
         }
@@ -63,6 +62,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @PreAuthorize("hasRole('ADMIN') or @authorizationService.isCurrentUserEmail(#email)")
     public UserResponse findByEmail(String email) {
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
@@ -71,6 +71,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @PreAuthorize("hasRole('ADMIN') or @authorizationService.isCurrentUsername(#username)")
     public UserResponse findByUsername(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));

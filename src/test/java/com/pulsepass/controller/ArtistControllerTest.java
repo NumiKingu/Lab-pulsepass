@@ -6,6 +6,7 @@ import com.pulsepass.service.ArtistService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.pulsepass.support.AbstractSecuredWebMvcTest;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -23,14 +24,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ArtistController.class)
-class ArtistControllerTest {
-
+class ArtistControllerTest extends AbstractSecuredWebMvcTest {
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
     private ArtistService artistService;
-
 
     @Test
     @DisplayName("GET /api/artists/{id} -> 200 cuando existe")
@@ -46,7 +45,6 @@ class ArtistControllerTest {
         verify(artistService).findById(1L);
     }
 
-
     @Test
     @DisplayName("GET /api/artists/{id} -> 404 cuando no existe")
     void findById_inexistente_retorna404() throws Exception {
@@ -61,7 +59,6 @@ class ArtistControllerTest {
                 .andExpect(jsonPath("$.message").value("Artist not found: 99"));
     }
 
-
     @Test
     @DisplayName("GET /api/artists/{id} -> 400 cuando el id no es numerico")
     void findById_idInvalido_retorna400() throws Exception {
@@ -73,7 +70,6 @@ class ArtistControllerTest {
 
         verify(artistService, never()).findById(anyLong());
     }
-
 
     @Test
     @DisplayName("GET /api/artists/by-stage-name?stageName=... -> 200")
@@ -88,7 +84,6 @@ class ArtistControllerTest {
         verify(artistService).findByStageName("Neon Waves");
     }
 
-
     @Test
     @DisplayName("GET /api/artists/by-stage-name -> 404 cuando no existe")
     void findByStageName_inexistente_retorna404() throws Exception {
@@ -99,7 +94,6 @@ class ArtistControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
-
 
     @Test
     @DisplayName("GET /api/artists/active -> 200")

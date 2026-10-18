@@ -4,11 +4,13 @@ import com.pulsepass.dto.request.RegisterUserRequest;
 import com.pulsepass.dto.response.UserResponse;
 import com.pulsepass.exception.DuplicateResourceException;
 import com.pulsepass.exception.ResourceNotFoundException;
+import com.pulsepass.service.AuthService;
 import com.pulsepass.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.pulsepass.support.AbstractSecuredWebMvcTest;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -31,13 +33,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(UserController.class)
-class UserControllerTest {
-
+class UserControllerTest extends AbstractSecuredWebMvcTest {
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private AuthService authService;
 
     private static final String VALID_BODY = """
             {
@@ -47,15 +51,15 @@ class UserControllerTest {
               "lastName": "Perez",
               "phone": "3001234567",
               "city": "Santa Marta",
-              "birthDate": "1998-05-10"
+              "birthDate": "1998-05-10",
+              "password": "UnaFraseSeguraLarga2026!"
             }
             """;
-
 
     @Test
     @DisplayName("POST /api/users -> 201 con request valido")
     void register_valido_retorna201() throws Exception {
-        when(userService.register(any(RegisterUserRequest.class))).thenReturn(user());
+        when(authService.register(any(RegisterUserRequest.class))).thenReturn(user());
 
         mockMvc.perform(post("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -67,11 +71,38 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.active").value(true));
 
         ArgumentCaptor<RegisterUserRequest> captor = ArgumentCaptor.forClass(RegisterUserRequest.class);
-        verify(userService).register(captor.capture());
+        verify(authService).register(captor.capture());
         assertThat(captor.getValue().username()).isEqualTo("andrea");
         assertThat(captor.getValue().birthDate()).isEqualTo(LocalDate.of(1998, 5, 10));
     }
 
+    @Test
+    @DisplayName("POST /api/users -> 400 si la contraseña tiene menos de 12 caracteres")
+    void register_passwordCorta_retorna400() throws Exception {
+        String body = VALID_BODY.replace("UnaFraseSeguraLarga2026!", "corta123");
+
+        mockMvc.perform(post("/api/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.password")
+                        .value("Password must have between 12 and 72 characters"));
+
+        verify(authService, never()).register(any());
+    }
+
+    @Test
+    @DisplayName("POST /api/users -> la respuesta 201 nunca incluye password ni hash")
+    void register_noExponeSecretos() throws Exception {
+        when(authService.register(any(RegisterUserRequest.class))).thenReturn(user());
+
+        mockMvc.perform(post("/api/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_BODY))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.passwordHash").doesNotExist());
+    }
 
     @Test
     @DisplayName("POST /api/users -> 400 con email invalido y sin llamar al Service")
@@ -96,9 +127,8 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.details.email").value("Email format is invalid"));
 
-        verify(userService, never()).register(any());
+        verify(authService, never()).register(any());
     }
-
 
     @Test
     @DisplayName("POST /api/users -> 400 con campos obligatorios vacios")
@@ -113,14 +143,13 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.details.lastName").value("Last name is required"))
                 .andExpect(jsonPath("$.details.birthDate").value("Birth date is required"));
 
-        verify(userService, never()).register(any());
+        verify(authService, never()).register(any());
     }
-
 
     @Test
     @DisplayName("POST /api/users -> 409 si el username o email ya existen")
     void register_duplicado_retorna409() throws Exception {
-        when(userService.register(any(RegisterUserRequest.class)))
+        when(authService.register(any(RegisterUserRequest.class)))
                 .thenThrow(new DuplicateResourceException("Username already exists: andrea"));
 
         mockMvc.perform(post("/api/users")
@@ -133,13 +162,12 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.message").value(not(containsString("Exception"))));
     }
 
-
     @Test
     @DisplayName("GET /api/users/by-email?email=... -> 200")
     void findByEmail_retorna200() throws Exception {
         when(userService.findByEmail("andrea@pulsepass.com")).thenReturn(user());
 
-        mockMvc.perform(get("/api/users/by-email").param("email", "andrea@pulsepass.com"))
+        mockMvc.perform(get("/api/users/by-email").with(asUser()).param("email", "andrea@pulsepass.com"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.email").value("andrea@pulsepass.com"));
@@ -147,24 +175,22 @@ class UserControllerTest {
         verify(userService).findByEmail("andrea@pulsepass.com");
     }
 
-
     @Test
     @DisplayName("GET /api/users/by-email -> 404 cuando no existe")
     void findByEmail_inexistente_retorna404() throws Exception {
         when(userService.findByEmail("x@x.com"))
                 .thenThrow(new ResourceNotFoundException("User not found: x@x.com"));
 
-        mockMvc.perform(get("/api/users/by-email").param("email", "x@x.com"))
+        mockMvc.perform(get("/api/users/by-email").with(asUser()).param("email", "x@x.com"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("User not found: x@x.com"));
     }
 
-
     @Test
     @DisplayName("GET /api/users/by-email sin parametro -> 400")
     void findByEmail_sinParametro_retorna400() throws Exception {
-        mockMvc.perform(get("/api/users/by-email"))
+        mockMvc.perform(get("/api/users/by-email").with(asUser()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Missing request parameter"))
                 .andExpect(jsonPath("$.details.email").value("Parameter is required"));
@@ -172,13 +198,12 @@ class UserControllerTest {
         verify(userService, never()).findByEmail(anyString());
     }
 
-
     @Test
     @DisplayName("GET /api/users/by-username?username=... -> 200")
     void findByUsername_retorna200() throws Exception {
         when(userService.findByUsername("andrea")).thenReturn(user());
 
-        mockMvc.perform(get("/api/users/by-username").param("username", "andrea"))
+        mockMvc.perform(get("/api/users/by-username").with(asUser()).param("username", "andrea"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("andrea"));
 

@@ -11,6 +11,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.pulsepass.support.AbstractSecuredWebMvcTest;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -34,8 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(TicketController.class)
-class TicketControllerTest {
-
+class TicketControllerTest extends AbstractSecuredWebMvcTest {
     @Autowired
     private MockMvc mockMvc;
 
@@ -50,13 +50,12 @@ class TicketControllerTest {
             }
             """;
 
-
     @Test
     @DisplayName("POST /api/tickets -> 201 con compra valida")
     void purchase_valida_retorna201() throws Exception {
         when(ticketService.purchase(any(PurchaseTicketRequest.class))).thenReturn(ticket(TicketStatus.PAID));
 
-        mockMvc.perform(post("/api/tickets")
+        mockMvc.perform(post("/api/tickets").with(asUser())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(VALID_BODY))
                 .andExpect(status().isCreated())
@@ -73,7 +72,6 @@ class TicketControllerTest {
         assertThat(captor.getValue().type()).isEqualTo(TicketType.GENERAL);
     }
 
-
     @Test
     @DisplayName("POST /api/tickets -> 400 con request invalido y sin llamar al Service")
     void purchase_invalido_retorna400() throws Exception {
@@ -84,7 +82,7 @@ class TicketControllerTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/tickets")
+        mockMvc.perform(post("/api/tickets").with(asUser())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalid))
                 .andExpect(status().isBadRequest())
@@ -99,13 +97,12 @@ class TicketControllerTest {
         verify(ticketService, never()).purchase(any());
     }
 
-
     @Test
     @DisplayName("POST /api/tickets -> 400 con tipo de ticket inexistente")
     void purchase_tipoInvalido_retorna400() throws Exception {
         String invalid = VALID_BODY.replace("GENERAL", "NO_EXISTE");
 
-        mockMvc.perform(post("/api/tickets")
+        mockMvc.perform(post("/api/tickets").with(asUser())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalid))
                 .andExpect(status().isBadRequest())
@@ -114,14 +111,13 @@ class TicketControllerTest {
         verify(ticketService, never()).purchase(any());
     }
 
-
     @Test
     @DisplayName("POST /api/tickets -> 404 cuando el usuario no existe")
     void purchase_usuarioInexistente_retorna404() throws Exception {
         when(ticketService.purchase(any(PurchaseTicketRequest.class)))
                 .thenThrow(new ResourceNotFoundException("User not found: andrea@pulsepass.com"));
 
-        mockMvc.perform(post("/api/tickets")
+        mockMvc.perform(post("/api/tickets").with(asUser())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(VALID_BODY))
                 .andExpect(status().isNotFound())
@@ -130,14 +126,13 @@ class TicketControllerTest {
                 .andExpect(jsonPath("$.message").value("User not found: andrea@pulsepass.com"));
     }
 
-
     @Test
     @DisplayName("POST /api/tickets -> 409 cuando el Service rechaza por regla de negocio (menor de edad)")
     void purchase_reglaDeNegocio_retorna409() throws Exception {
         when(ticketService.purchase(any(PurchaseTicketRequest.class)))
                 .thenThrow(new BusinessRuleException("User does not meet the minimum age"));
 
-        mockMvc.perform(post("/api/tickets")
+        mockMvc.perform(post("/api/tickets").with(asUser())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(VALID_BODY))
                 .andExpect(status().isConflict())
@@ -147,13 +142,12 @@ class TicketControllerTest {
                 .andExpect(jsonPath("$.message").value("User does not meet the minimum age"));
     }
 
-
     @Test
     @DisplayName("GET /api/tickets/{ticketCode} -> 200")
     void findByCode_existente_retorna200() throws Exception {
         when(ticketService.findByCode("TKT-0001")).thenReturn(ticket(TicketStatus.PAID));
 
-        mockMvc.perform(get("/api/tickets/{ticketCode}", "TKT-0001"))
+        mockMvc.perform(get("/api/tickets/{ticketCode}", "TKT-0001").with(asUser()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.ticketCode").value("TKT-0001"))
@@ -162,19 +156,17 @@ class TicketControllerTest {
         verify(ticketService).findByCode("TKT-0001");
     }
 
-
     @Test
     @DisplayName("GET /api/tickets/{ticketCode} -> 404 cuando no existe")
     void findByCode_inexistente_retorna404() throws Exception {
         when(ticketService.findByCode("NOPE"))
                 .thenThrow(new ResourceNotFoundException("Ticket not found: NOPE"));
 
-        mockMvc.perform(get("/api/tickets/{ticketCode}", "NOPE"))
+        mockMvc.perform(get("/api/tickets/{ticketCode}", "NOPE").with(asUser()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("Ticket not found: NOPE"));
     }
-
 
     @Test
     @DisplayName("GET /api/tickets/by-user?email=... -> 200")
@@ -182,7 +174,7 @@ class TicketControllerTest {
         when(ticketService.findByUserEmail("andrea@pulsepass.com"))
                 .thenReturn(List.of(ticket(TicketStatus.PAID)));
 
-        mockMvc.perform(get("/api/tickets/by-user").param("email", "andrea@pulsepass.com"))
+        mockMvc.perform(get("/api/tickets/by-user").with(asUser()).param("email", "andrea@pulsepass.com"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.length()").value(1))
@@ -191,11 +183,10 @@ class TicketControllerTest {
         verify(ticketService).findByUserEmail("andrea@pulsepass.com");
     }
 
-
     @Test
     @DisplayName("GET /api/tickets/by-user sin email -> 400")
     void findByUserEmail_sinParametro_retorna400() throws Exception {
-        mockMvc.perform(get("/api/tickets/by-user"))
+        mockMvc.perform(get("/api/tickets/by-user").with(asUser()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Missing request parameter"))
                 .andExpect(jsonPath("$.details.email").value("Parameter is required"));
@@ -203,13 +194,12 @@ class TicketControllerTest {
         verify(ticketService, never()).findByUserEmail(anyString());
     }
 
-
     @Test
     @DisplayName("PATCH /api/tickets/{ticketCode}/cancel -> 200")
     void cancel_valido_retorna200() throws Exception {
         when(ticketService.cancel("TKT-0001")).thenReturn(ticket(TicketStatus.CANCELLED));
 
-        mockMvc.perform(patch("/api/tickets/{ticketCode}/cancel", "TKT-0001"))
+        mockMvc.perform(patch("/api/tickets/{ticketCode}/cancel", "TKT-0001").with(asUser()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.status").value("CANCELLED"));
@@ -217,26 +207,24 @@ class TicketControllerTest {
         verify(ticketService).cancel("TKT-0001");
     }
 
-
     @Test
     @DisplayName("PATCH /api/tickets/{ticketCode}/cancel -> 409 si el ticket ya fue usado")
     void cancel_invalido_retorna409() throws Exception {
         when(ticketService.cancel("TKT-0001"))
                 .thenThrow(new BusinessRuleException("A USED ticket cannot be cancelled"));
 
-        mockMvc.perform(patch("/api/tickets/{ticketCode}/cancel", "TKT-0001"))
+        mockMvc.perform(patch("/api/tickets/{ticketCode}/cancel", "TKT-0001").with(asUser()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.message").value("A USED ticket cannot be cancelled"));
     }
-
 
     @Test
     @DisplayName("PATCH /api/tickets/{ticketCode}/use -> 200")
     void markAsUsed_valido_retorna200() throws Exception {
         when(ticketService.markAsUsed("TKT-0001")).thenReturn(ticket(TicketStatus.USED));
 
-        mockMvc.perform(patch("/api/tickets/{ticketCode}/use", "TKT-0001"))
+        mockMvc.perform(patch("/api/tickets/{ticketCode}/use", "TKT-0001").with(asStaff()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.status").value("USED"));
@@ -244,14 +232,13 @@ class TicketControllerTest {
         verify(ticketService).markAsUsed("TKT-0001");
     }
 
-
     @Test
     @DisplayName("PATCH /api/tickets/{ticketCode}/use -> 409 si el ticket esta CANCELLED")
     void markAsUsed_invalido_retorna409() throws Exception {
         when(ticketService.markAsUsed("TKT-0001"))
                 .thenThrow(new BusinessRuleException("A CANCELLED ticket cannot be used"));
 
-        mockMvc.perform(patch("/api/tickets/{ticketCode}/use", "TKT-0001"))
+        mockMvc.perform(patch("/api/tickets/{ticketCode}/use", "TKT-0001").with(asStaff()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.message").value("A CANCELLED ticket cannot be used"));
