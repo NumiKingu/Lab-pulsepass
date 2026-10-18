@@ -53,7 +53,6 @@ Duración del token: 900 s (15 min). No hay refresh tokens ni revocación inmedi
 | `PULSEPASS_CORS_ALLOWED_ORIGINS` | No | Orígenes permitidos separados por coma. |
 | `PULSEPASS_SEED_ADMIN_PASSWORD` / `PULSEPASS_SEED_STAFF_PASSWORD` | No | Solo perfil `dev`: crea `miguel` (ADMIN) y `laura` (STAFF). |
 
-Ver `.env.example`. Nunca subir un `.env` real.
 
 ### Roles
 
@@ -64,7 +63,7 @@ Ver `.env.example`. Nunca subir un `.env` real.
 | `STAFF` | Ver tickets pagados de un evento; marcar tickets como usados |
 | `ADMIN` | Crear/publicar eventos, asociar artistas, consultar datos de otros usuarios |
 
-El registro público asigna siempre `USER`. `STAFF`/`ADMIN` solo se asignan por semilla local o proceso administrativo.
+
 
 ### Endpoints nuevos
 
@@ -73,8 +72,7 @@ El registro público asigna siempre `USER`. `STAFF`/`ADMIN` solo se asignan por 
 | POST | `/api/auth/login` | Público | 200 `AuthResponse(accessToken, tokenType, expiresIn)` |
 | GET | `/api/auth/me` | Autenticado | 200 `AuthenticatedUserResponse(id, username, roles)` |
 
-`POST /api/users` ahora exige `password` (12 a 72 caracteres).
-
+`
 ### Errores de seguridad
 
 | Código | Cuándo |
@@ -82,7 +80,6 @@ El registro público asigna siempre `USER`. `STAFF`/`ADMIN` solo se asignan por 
 | 401 | Sin token, token inválido/expirado/manipulado, login incorrecto o usuario inactivo |
 | 403 | Rol insuficiente o recurso de otro usuario |
 
-Ambos usan el mismo `ErrorResponse` de 6 campos.
 
 ### Limitaciones conocidas del MVP
 
@@ -90,9 +87,4 @@ Ambos usan el mismo `ErrorResponse` de 6 campos.
 - Sin límite de intentos de login, rotación de claves ni revocación por `jti`.
 - Usuarios creados antes de la Fase 4 no tienen contraseña y no pueden iniciar sesión hasta una activación segura.
 
-### Pruebas
 
-```bash
-mvn clean test -Dtest="*Test"   # unitarias + MockMvc (sin Docker)
-mvn clean test                  # todo, incluye integración con Testcontainers
-```
