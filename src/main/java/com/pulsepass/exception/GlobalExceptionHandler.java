@@ -106,6 +106,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex) {
+        log.error("Error inesperado", ex);
         return build(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An unexpected error occurred",

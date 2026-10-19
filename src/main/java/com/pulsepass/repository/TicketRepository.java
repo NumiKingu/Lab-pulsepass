@@ -18,8 +18,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     List<Ticket> findByUserEmail(String email);
 
-    List<Ticket> findByUserEmailIgnoreCaseOrderByPurchaseDateDesc(String email);
-
+    @Query("select t from Ticket t where lower(t.user.email) = lower(:email) order by t.purchaseDate desc")
+    List<Ticket> findByUserEmailIgnoreCaseOrderByPurchaseDateDesc(@Param("email") String email);
     List<Ticket> findByUserEmailAndStatus(String email, TicketStatus status);
 
     List<Ticket> findByEventEventCodeAndStatus(String eventCode, TicketStatus status);
